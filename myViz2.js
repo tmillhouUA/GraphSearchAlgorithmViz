@@ -9,7 +9,7 @@ let arrowL = 10
 let minNodeDist = 100
 let allowedFails = 100
 let branchFactor = 2
-let fps = 60
+let fps = 10
 
 let algorithm = 0 // [bf, uc, df, dl, id, bd]
 
