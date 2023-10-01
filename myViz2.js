@@ -793,14 +793,13 @@ function depthLimitedSearch(){
 }
 
 maxDepth = 0
-
-function iterativeDeepeningSearch(){
-    costLabel.text(`Steps: ${maxDepth} Cost: ???`)
-    let depths = [0]
-    for(let i=1; i<edges[0].length;i++){
+let depths = [0]
+for(let i=1; i<edges[0].length;i++){
         depths[i] = Infinity
     }
+costLabel.text(`Steps: ${maxDepth} Cost: ???`)
 
+function iterativeDeepeningSearch(){
     if(!done){ //if search not already finished
         let open = frontier.pop()  
 
@@ -811,24 +810,16 @@ function iterativeDeepeningSearch(){
             showSolution();updateLists(frontier) 
         }
         else{ //if goal node NOT found
-            //if(depths[open]<maxDepth){
-                for(let i=0; i<edges[open].length;i++){
-                    if(edges[open][i]==1){ //get children
-                        //if(!frontier.includes(i)){
-                        //if(!paths[open].includes(i)){ //if child not visited and not on frontier //&& !frontier.includes(i)
-                        //if(paths[open].length<maxDepth){ 
-                            let childDepth = Math.min(depths[open] + 1, depths[i])
-                            if(childDepth<=maxDepth){  
-                            frontier.push(i)                            
-                            paths[i]=paths[open].concat([i])
-                            depths[i] = depths[open] + 1
-                            console.log(depths)
-                            }
-                        //} 
-                        //}
-                    //}
+            //investigate children
+            for(let i=0; i<edges[open].length;i++){ //get children   
+                if(edges[open][i]==1){ //get children                            
+                    if(depths[open]<maxDepth && (depths[open] + 1)<depths[i]){  
+                        depths[i] = depths[open] + 1
+                        frontier.push(i)                            
+                        paths[i]=paths[open].concat([i])
+                    }                          
                 }
-        }        
+            }        
             //update visualization        
             updateSearchViz(frontier);updateLists(frontier)  
         }
@@ -839,56 +830,11 @@ function iterativeDeepeningSearch(){
             depths = [0]
             for(let i=1; i<edges[0].length;i++){
                 depths[i] = Infinity
-            }
-            //visited = []
+            }            
             paths = [[0]]  
             
             costLabel.text(`Steps: ${maxDepth} Cost: ???`)        
         }
-    }
-
-}
-
-
-function iterativeDeepeningSearchNEW(){
-    costLabel.text(`Steps: ${maxDepth} Cost: ???`)
-    if(!done){ //if search not already finished
-        let open = frontier.pop()        
-        visited.push(open)
-
-        if(open == nNodes-1){ //if goal node found
-            //set search to finished
-            done = 1
-            //update visualization           
-            showSolution();updateLists(frontier) 
-        }
-        else{ //if goal node NOT found
-            for(let i=0; i<edges[open].length;i++){if(edges[open][i]==1){ //get children
-                if(!visited.includes(i)){ //if child not visited and not on frontier
-                    if(paths[open].length-1<maxDepth){
-                        if(frontier.includes(i)){
-                            if(paths[i].length>paths[open].length){
-                                console.log("It Happened!")
-                                paths[i]=paths[open].concat([i])
-                            } 
-                        }
-                        else{
-                            frontier.push(i)
-                            paths[i]=paths[open].concat([i])
-                        }                             
-                    }
-                }
-            }}        
-            //update visualization        
-            updateSearchViz(frontier);updateLists(frontier)  
-        }
-    }
-    if(frontier.length==0){ //if goal node too deep for current limit
-        maxDepth++
-        frontier = [0]
-        visited = []
-        paths = [[0]]   
-        costLabel.text(`Steps: ${maxDepth} Cost: ???`)        
     }
 
 }
