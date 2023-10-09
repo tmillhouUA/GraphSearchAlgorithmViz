@@ -72,12 +72,65 @@ function drawDirectedEdge(root,tip,directed = true){
 }
 
 function getDists(nodeLoc,nodeCoords){
-    
+    //Euclidean Distance
     let dists = []
 
     for(let i=0; i<nodeCoords.length;i++){
         let dist = ((nodeLoc[0]-nodeCoords[i][0])**2 + (nodeLoc[1]-nodeCoords[i][1])**2)**.5
         dists.push(dist)           
+    }
+    //console.log(dists)
+    return dists
+}
+
+function aStarDist(nodeA,nodeB,graph){    
+    let f = [nodeA]
+    let v = []
+    let p = [[nodeA]]
+    let d  = 1
+    while(f.length>0){ //if search not already finished
+        let bestInd = 0
+        let bestCost = Infinity
+        for(let i=0; i<f.length;i++){
+            let iCost = computeHueristic(p[f[i]])
+            if(iCost<bestCost){
+                bestInd = i
+                bestCost = iCost
+            }
+        }
+        let open = f.splice(bestInd,1)
+        v.push(open[0])
+
+        if(open == nodeB){ //if goal node found            
+            return(computeCost(p[open]))           
+                
+        }else{ //if goal node NOT found
+            for(let i=0; i<graph[open].length;i++){if(graph[open][i]==1){ //get children
+                if(!v.includes(i) && !f.includes(i)){ //if child not visited and not on frontier
+                    f.push(i) 
+                    p[i]=p[open].concat([i])                    
+                }
+                if(!v.includes(i) && f.includes(i)){ //if child not visited and is on frontier 
+                    currCost = computeHueristic(p[i])
+                    thisCost = computeHueristic(p[open].concat([i]))                    
+                    if(thisCost<currCost){ //see if this path to child is shorter 
+                        p[i]=p[open].concat([i]) 
+                    }                  
+                }
+            }   
+            }
+
+        }        
+    }
+    return Infinity
+}
+
+function getDistsGraph(node,graph){
+    //Graph Distance
+    let dists = []
+
+    for(let i=0; i<edges.length;i++){        
+        dists.push(aStarDist(node,i,graph))           
     }
 
     return dists
@@ -324,6 +377,7 @@ for(let i=0; i<nNodes-1;i++){
 }    
 
 console.log(edges)
+console.log(getDistsGraph(0,edges))
 
 //Draw Circles
 
@@ -339,7 +393,7 @@ for(let i=0; i<nNodes;i++){
                     .attr("r",nodeR*1.75)
                     .attr("fill", "rgb(0,0,0)")
                     .attr("filter", "url(#lightBlur)")
-                    .attr("opacity",getDistOpacity(i))
+                    .attr("opacity",0)
                     //.attr("stroke", "rgba(50,50,50,1)")
                     //.attr("stroke-width",20)
                     //.on("mouseover",function(){return emphasizeNeighbors(i)})               
@@ -420,33 +474,44 @@ function clearEmphasis(){
 }
 
 function getDistOpacity(ind,measure=0){
-    if(measure==0){return 0}
-
-    if(measure==1){
-        let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)        
+    
+    let opacities = []
+    let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)
+    let refOut = getDistsGraph(0,edges) 
+    console.log(refOut)
+    if(measure==0){
+        for(let i=0; i<refLeft.length;i++){
+            console.log(opacities)
+            opacities.push(0)
+        }
+    }
+    if(measure==1){                
         let worstDist = Math.max(...refLeft)        
-        return .1 + .9* ((worstDist-refLeft[ind])/worstDist)**2
+        for(let i=0; i<refLeft.length;i++){
+            opacities.push(.1 + .9* ((worstDist-refLeft[i])/worstDist)**2)
+        }  
     }
-    if(measure==2){
-        let refOut = getDists(nodeCoords[0],nodeCoords)        
-        let worstDist = Math.max(...refOut)
-        return .1 + .9* ((worstDist-refOut[ind])/worstDist)**2
+    if(measure==2){        
+        let worstDist = Math.max(...refOut)        
+        for(let i=0; i<refOut.length;i++){
+            opacities.push(.1 + .9* ((worstDist-refOut[i])/worstDist)**2)
+        }
     }
 
-    if(measure==3){
-        let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)         
-        let refOut = getDists(nodeCoords[0],nodeCoords) 
-
-        
-        
+    if(measure==3){    
         refBoth = []
         for(let j=0;j<refLeft.length;j++){
-            refBoth.push(refLeft[j]+refOut[j]*1.5)
+            refBoth.push(refLeft[j]+refOut[j])
         }
         let worstDist = Math.max(...refBoth)
 
-        return .1 + .9* ((worstDist-refBoth[ind])/worstDist)**2
+        for(let i=0; i<refBoth.length;i++){
+            opacities.push(.1 + .9* ((worstDist-refBoth[i])/worstDist)**2)
+        }
+            
     }
+    console.log(opacities)
+    return opacities
 }
 
 function highlightNodes(targets,color){
@@ -880,17 +945,13 @@ function clickShadowButton(ind){
                 shadowButtons[i].attr("opacity",.5)
             }
         }        
-
+        console.log("HEY")
+        let opacities = getDistOpacity(0,ind)
+        console.log(opacities)
         for(let i=0; i<nNodes;i++){            
-            shadowGlyphs[i].attr("opacity",getDistOpacity(i,ind)).attr("fill",fills[ind])
-
-            
-
+            shadowGlyphs[i].attr("opacity",opacities[i]).attr("fill",fills[ind])          
         }
-        
-   
     }
-
 }
 
 function clickSpeedButton(){
