@@ -1,4 +1,6 @@
-//Visualization Settings
+///////////
+//Settings
+///////////
 
 let width = 1200
 let height = 900
@@ -9,12 +11,19 @@ let arrowL = 10
 let minNodeDist = 100
 let allowedFails = 100
 let branchFactor = 2
-let fps = 10
-
-let algorithm = 0 // [bf, uc, df, dl, id, bd]
 
 let alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"];
 
+let speeds = [1,3,5,15,30]
+let speed = 0
+let fps = speeds[speed]
+let stepByStep = false
+let currentAlg = -1
+let controlColor = "rgb(150,150,150)"
+
+/////////////////
+//Math Functions
+/////////////////
 
 function arrayOfZeros(rows, columns,val = 0){
     let zArray = []
@@ -62,8 +71,6 @@ function drawDirectedEdge(root,tip,directed = true){
 
 }
 
-
-
 function getDists(nodeLoc,nodeCoords){
     
     let dists = []
@@ -76,39 +83,93 @@ function getDists(nodeLoc,nodeCoords){
     return dists
 }
 
+/* function adjustSLD(coords,start,goal,bestToGoal){
+
+    distToGoal = normL2([[coords[0]+start[0]-goal[0]],[coords[1]+start[1]-goal[1]]])
+    
+    currLength = normL2(coords)
+    newLength = Math.max(0,currLength - (distToGoal-bestToGoal))
+    
+    console.log(newLength)
+    return normalizeVec(coords,newLength)  
+}
+ */
+
+
+////////////////
+//Visualization
+////////////////
+
 //Create SVG
 
 let svg = d3.select('#viz').append('svg').attr("width",width+200).attr("height",height+50)
 
-
+//Title
 
 svg.append("text").text("Graph Search Algorithms").attr("dominant-baseline","middle").attr("text-anchor","start")
                     .attr("x",graphBorder/2).attr("y",2*graphBorder/6).attr("font-family", "monospace").attr("font-size",graphBorder/4).attr("fill","rgb(50,50,50)")   
                  
+//Play Controls    
+
+
+let playControls = svg.append("g").attr("transform",`translate(${graphBorder/2+width-graphBorder} ${(graphBorder/2-40)/2})`)
+
+let autoGlyph = playControls.append("path").attr("d","M 10 30 L 30 20 L 10 10 L 10 30 L 30 20")
+.attr("height", 40).attr("width",40).attr("rx",10)
+.attr("fill","None").attr("stroke", (function(){if(stepByStep){return controlColor}else{return "rgb(0,200,0)"}})).attr("stroke-width",2)//.attr("transform","translate(1 0)")
+
+let autoClick = playControls.append("rect").attr("x",0).attr("y",0)
+.attr("height", 40).attr("width",39).attr("rx",10)
+.attr("fill","rgba(0,0,0,0)").attr("stroke", controlColor).on("click",clickAutoButton).attr("stroke-width",2)
+
+
+let stepGlyph = playControls.append("path").attr("d","M 10 30 L 25 20 L 10 10 L 10 30 L 25 20 M 30 32.5 L 30 7.5")
+.attr("height", 40).attr("width",40).attr("rx",10)
+.attr("fill","None").attr("stroke", (function(){if(stepByStep){return "rgb(0,200,0)"}else{return controlColor}})).attr("stroke-width",2).attr("transform","translate(40 0)")
+
+let stepClick =  playControls.append("rect").attr("x",40).attr("y",0)
+.attr("height", 40).attr("width",39).attr("rx",10)
+.attr("fill","rgba(0,0,0,0)").attr("stroke", controlColor).on("click",clickStepButton).attr("stroke-width",2)
+
+let speedGlyphs = []
+let sGlyphInc = 110/speeds.length
+let sGlyphColor = controlColor
+for(let i = 0; i < speeds.length; i++){
+    if(i<=speed){sGlyphColor = "rgb(250,75,75)"}
+    else{sGlyphColor = controlColor}
+    speedGlyphs[i] = playControls.append("path").attr("d",`M ${5+i*sGlyphInc} 32.5 L ${(i+1)*sGlyphInc-5} 20 L ${5+i*sGlyphInc} 7.5`)
+    .attr("height", 40).attr("width",40).attr("rx",10)
+    .attr("fill","rgba(0,0,0,0)").attr("stroke", sGlyphColor).attr("stroke-width",2).attr("transform","translate(85 0)")
+}
+
+let speedClick =  playControls.append("rect").attr("x",80).attr("y",0)
+.attr("height", 40).attr("width",120).attr("rx",10)
+.attr("fill","rgba(0,0,0,0)").attr("stroke", controlColor).on("click",clickSpeedButton).attr("stroke-width",2)
+
+
+//Layout
 
 let borderRect = svg.append("rect").attr("x",graphBorder/2).attr("y",graphBorder/2)
                                     .attr("height", height-graphBorder).attr("width",width-graphBorder)
-                                    .attr("fill","None").attr("stroke", "rgb(50,50,50)")
-
-
+                                    .attr("fill","None").attr("stroke", controlColor).attr("stroke-width",2)
 
 svg.append("text").text("Frontier").attr("x",width-graphBorder/2+50).attr("y",graphBorder/2+15).attr("font-size",20)
                                     .attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("font-family", "monospace").attr("fill","rgb(50,50,50)").attr("font-weight","bolder")
+                                    .attr("font-family", "monospace").attr("fill","rgb(50,50,50)")//.attr("font-weight","bolder")
                                     .attr("text-decoration","underline")
 
 svg.append("text").text("Visited").attr("x",width-graphBorder/2+150).attr("y",graphBorder/2+15).attr("font-size",20)
                                     .attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("font-family", "monospace").attr("fill","rgb(50,50,50)").attr("font-weight","bolder")
+                                    .attr("font-family", "monospace").attr("fill","rgb(50,50,50)")//.attr("font-weight","bolder")
                                     .attr("text-decoration","underline")
 
 let stackRect = svg.append("rect").attr("x",width-graphBorder/2).attr("y",graphBorder/2)
                                     .attr("height", height-graphBorder).attr("width",200)
-                                    .attr("fill","None").attr("stroke", "rgb(50,50,50)")
+                                    .attr("fill","None").attr("stroke", controlColor).attr("stroke-width",2)
 
 let divider = svg.append("line").attr("x1",width-graphBorder/2 +100).attr("y1",graphBorder/2)
                                 .attr("x2",width-graphBorder/2 +100).attr("y2",height-graphBorder/2)                                        
-                                .attr("fill","None").attr("stroke", "rgb(50,50,50)")                           
+                                .attr("fill","None").attr("stroke", controlColor).attr("stroke-width",2)      
 
 let frontierLabel = svg.append("text").text("-").attr("dominant-baseline","middle")
                                                 .attr("text-anchor","start").attr("writing-mode","tb")
@@ -143,6 +204,7 @@ let costLabel = svg.append("text").text("Steps: ??? Cost: ???").attr("x",7+graph
                                     .attr("fill","rgb(50,50,50)")
                                     
 labelText = ["None","Breadth First","Uniform Cost","Depth First","Depth Limited","Itr. Deepening","Greedy Best","A*"]
+
 let algButtons = []
 
 for(let i=0;i<labelText.length;i++){
@@ -160,6 +222,7 @@ for(let i=0;i<labelText.length;i++){
 }
 
 shadowText = ["None","From Goal","From Start","Combined"]
+
 let shadowButtons = []
 
 for(let i=0;i<shadowText.length;i++){
@@ -175,145 +238,6 @@ for(let i=0;i<shadowText.length;i++){
         .attr("fill","rgb(200,200,200)")
         .on("click",function(){clickShadowButton(i)})
 }
-
-
-
-
-/* 
-let bfButton = svg.append("rect").attr("x",graphBorder/2).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10)
-                                    .on("click",function(){clickAlgButton(0)})
-                                    .attr("rx", 10).attr("opacity",.5)
-
-svg.append("text").text("Breadth First").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                        .attr("x",75+graphBorder/2).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                        .attr("font-family", "monospace").attr("font-size",15)
-                                        .attr("fill","rgb(200,200,200)")
-                                        .on("click",function(){clickAlgButton(0)})
-
-let ucButton = svg.append("rect").attr("x",graphBorder/2+160).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10).attr("opacity",.5)
-                                    .on("click",function(){clickAlgButton(1)})
-
-svg.append("text").text("Uniform Cost").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("x",75+graphBorder/2+160).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                    .attr("font-family", "monospace").attr("font-size",15)
-                                    .attr("fill","rgb(200,200,200)")
-                                    .on("click",function(){clickAlgButton(1)})
-
-
-let dfButton = svg.append("rect").attr("x",graphBorder/2+160*2).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10).attr("opacity",.5)
-                                    .on("click",function(){clickAlgButton(2)})
-
-svg.append("text").text("Depth First").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("x",75+graphBorder/2+160*2).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                    .attr("font-family", "monospace").attr("font-size",15)
-                                    .attr("fill","rgb(200,200,200)")
-                                    .on("click",function(){clickAlgButton(2)})
-
-
-let dlButton = svg.append("rect").attr("x",graphBorder/2+160*3).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10).attr("opacity",.5)
-                                    .on("click",function(){clickAlgButton(3)})
-
-svg.append("text").text("Depth Limited").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("x",75+graphBorder/2+160*3).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                    .attr("font-family", "monospace").attr("font-size",15)
-                                    .attr("fill","rgb(200,200,200)")
-                                    .on("click",function(){clickAlgButton(3)})
-
-
-let idButton = svg.append("rect").attr("x",graphBorder/2+160*4).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10).attr("opacity",.5)
-                                    .on("click",function(){clickAlgButton(4)})
-
-svg.append("text").text("Iterative Deep.").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("x",75+graphBorder/2+160*4).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                    .attr("font-family", "monospace").attr("font-size",15)
-                                    .attr("fill","rgb(200,200,200)")
-                                    .on("click",function(){clickAlgButton(4)})
-
-let gbfsButton = svg.append("rect").attr("x",graphBorder/2+160*5).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10).attr("opacity",.5)
-                                    .on("click",function(){clickAlgButton(5)})
-
-svg.append("text").text("Greedy Best").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("x",75+graphBorder/2+160*5).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                    .attr("font-family", "monospace").attr("font-size",15)
-                                    .attr("fill","rgb(200,200,200)")
-                                    .on("click",function(){clickAlgButton(5)})
-
-let aStarButton = svg.append("rect").attr("x",graphBorder/2+160*6).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10).attr("opacity",.5)
-                                    .on("click",function(){clickAlgButton(6)})
-
-svg.append("text").text("A*").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("x",75+graphBorder/2+160*6).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                    .attr("font-family", "monospace").attr("font-size",15)
-                                    .attr("fill","rgb(200,200,200)")
-                                    .on("click",function(){clickAlgButton(6)})
- */
-
-/* 
-let bdButton = svg.append("rect").attr("x",graphBorder/2+160*5).attr("y",graphBorder/2 + height-graphBorder+10)
-                                    .attr("height", 50).attr("width",150)
-                                    .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
-                                    .attr("rx", 10).attr("opacity",.5)
-                                    .on("click",function(){clickAlgButton(5)})
-
-svg.append("text").text("Bidirectional").attr("dominant-baseline","middle").attr("text-anchor","middle")
-                                    .attr("x",75+graphBorder/2+160*5).attr("y",25+graphBorder/2 + height-graphBorder+10)
-                                    .attr("font-family", "monospace").attr("font-size",15)
-                                    .attr("fill","rgb(200,200,200)")
-                                    .on("click",function(){clickAlgButton(5)}) */
-
-//let algButtons = [bfButton,ucButton,dfButton,dlButton,idButton,gbfsButton,aStarButton]//,bdButton]
-//
-
-function adjustSLD(coords,start,goal,bestToGoal){
-
-    distToGoal = normL2([[coords[0]+start[0]-goal[0]],[coords[1]+start[1]-goal[1]]])
-    //bestToGoal = normL2([[best[0]-goal[0]],[best[1]-goal[1]]])
-    currLength = normL2(coords)
-    newLength = Math.max(0,currLength - (distToGoal-bestToGoal))
-    
-    console.log(newLength)
-    return normalizeVec(coords,newLength)  
-}
-
-function drawRadialBoundary(center,r,adjust=function(x){return x},steps=200){
-    let vecInit = adjust([r,0])
-    let d = `M ${center[0]+ vecInit[0]} ${center[1]+vecInit[1]} `
-    let stepSize = 360/steps
-    for(let i=0;i<steps; i++){
-        let rotVec = adjust(rotateVec([r,0],stepSize+stepSize*i))
-        d+= `L ${center[0]+ rotVec[0]} ${center[1]+rotVec[1]} `
-    }
-
-    //d += `L ${center[0]+ vecInit[0]} ${center[1]+vecInit[1]} `
-    console.log(d)
-    svg.append("path").attr("d",d).attr("stroke", "rgb(50,50,50)").attr("fill","None").attr("stroke-width",1)
-    
-
-}
-
-
-
 
 //Generate Nodes
 
@@ -353,17 +277,6 @@ for(let i=0; i<nNodes;i++){
 
     nodeCoords.push([nX,nY])
 }
-/* else if(i==1){
-    farEnough = true            
-    nX = (width-2*graphBorder)  + graphBorder
-    nY = (height-2*graphBorder) + graphBorder */
-
-
-//refDist = normL2([nodeCoords[10][0]-[nodeCoords.length-1][0],nodeCoords[10][1]-[nodeCoords.length-1][1]])
-
-
-
-
 
 //Draw Edges
 
@@ -371,7 +284,6 @@ let edges = arrayOfZeros(nNodes,nNodes)
 let edgeGlyphs = arrayOfZeros(nNodes,nNodes,null) 
 let edgeDists = arrayOfZeros(nNodes,nNodes,null) 
 let nodeInds = arange(nodeCoords.length)
-
 
 for(let i=0; i<nNodes-1;i++){  
     
@@ -414,70 +326,10 @@ for(let i=0; i<nNodes-1;i++){
 console.log(edges)
 
 //Draw Circles
-nodeGlyphs = []
-shadowGlyphs = []
-labelGlyphs = []
 
-function emphasizeNeighbors(nodeInd){
-    nodeGlyphs[nodeInd].transition().duration(100).attr("fill", "rgb(50,50,200)") 
-    labelGlyphs[nodeInd].transition().duration(100).attr("fill", "rgb(200,200,200)") 
-    for(i=0;i<nNodes;i++){
-        if(edges[nodeInd][i]==1){
-            nodeGlyphs[i].transition().duration(100).attr("fill", "rgb(200,50,50)") 
-            //labelGlyphs[i].transition().duration(100).attr("stroke", "rgb(200,200,200)") 
-            labelGlyphs[i].transition().duration(100).attr("fill", "rgb(225,225,225)") 
-            
-        }
-
-    }
-}
-
-function clearEmphasis(){
-    for(i=0;i<nNodes;i++){        
-            nodeGlyphs[i].transition().duration(100).attr("fill", "rgb(255,255,255)")
-            labelGlyphs[i].transition().duration(100).attr("fill", "rgb(50,50,50)")
-    }
-}
-
-
-
-
-
-
-
-function getDistOpacity(ind,measure=0){
-    if(measure==0){return 0}
-
-    if(measure==1){
-        let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)        
-        let worstDist = Math.max(...refLeft)        
-        return .1 + .9* ((worstDist-refLeft[ind])/worstDist)**2
-    }
-    if(measure==2){
-        let refOut = getDists(nodeCoords[0],nodeCoords)        
-        let worstDist = Math.max(...refOut)
-        return .1 + .9* ((worstDist-refOut[ind])/worstDist)**2
-    }
-
-    if(measure==3){
-        let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)         
-        let refOut = getDists(nodeCoords[0],nodeCoords) 
-
-        
-        
-        refBoth = []
-        for(let j=0;j<refLeft.length;j++){
-            refBoth.push(refLeft[j]+refOut[j]*1.5)
-        }
-        let worstDist = Math.max(...refBoth)
-
-        return .1 + .9* ((worstDist-refBoth[ind])/worstDist)**2
-    }
-}
-
-
-
-
+let nodeGlyphs = []
+let shadowGlyphs = []
+let labelGlyphs = []
 
 for(let i=0; i<nNodes;i++){
     
@@ -528,8 +380,74 @@ for(let i=0; i<nNodes;i++){
     labelGlyphs.push(label)
 }
 
+//Viz Functions
 
+function drawRadialBoundary(center,r,adjust=function(x){return x},steps=200){
+    let vecInit = adjust([r,0])
+    let d = `M ${center[0]+ vecInit[0]} ${center[1]+vecInit[1]} `
+    let stepSize = 360/steps
+    for(let i=0;i<steps; i++){
+        let rotVec = adjust(rotateVec([r,0],stepSize+stepSize*i))
+        d+= `L ${center[0]+ rotVec[0]} ${center[1]+rotVec[1]} `
+    }
 
+    //d += `L ${center[0]+ vecInit[0]} ${center[1]+vecInit[1]} `
+    console.log(d)
+    svg.append("path").attr("d",d).attr("stroke", "rgb(50,50,50)").attr("fill","None").attr("stroke-width",1)
+    
+
+}
+
+function emphasizeNeighbors(nodeInd){
+    nodeGlyphs[nodeInd].transition().duration(100).attr("fill", "rgb(50,50,200)") 
+    labelGlyphs[nodeInd].transition().duration(100).attr("fill", "rgb(200,200,200)") 
+    for(i=0;i<nNodes;i++){
+        if(edges[nodeInd][i]==1){
+            nodeGlyphs[i].transition().duration(100).attr("fill", "rgb(200,50,50)") 
+            //labelGlyphs[i].transition().duration(100).attr("stroke", "rgb(200,200,200)") 
+            labelGlyphs[i].transition().duration(100).attr("fill", "rgb(225,225,225)") 
+            
+        }
+
+    }
+}
+
+function clearEmphasis(){
+    for(i=0;i<nNodes;i++){        
+            nodeGlyphs[i].transition().duration(100).attr("fill", "rgb(255,255,255)")
+            labelGlyphs[i].transition().duration(100).attr("fill", "rgb(50,50,50)")
+    }
+}
+
+function getDistOpacity(ind,measure=0){
+    if(measure==0){return 0}
+
+    if(measure==1){
+        let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)        
+        let worstDist = Math.max(...refLeft)        
+        return .1 + .9* ((worstDist-refLeft[ind])/worstDist)**2
+    }
+    if(measure==2){
+        let refOut = getDists(nodeCoords[0],nodeCoords)        
+        let worstDist = Math.max(...refOut)
+        return .1 + .9* ((worstDist-refOut[ind])/worstDist)**2
+    }
+
+    if(measure==3){
+        let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)         
+        let refOut = getDists(nodeCoords[0],nodeCoords) 
+
+        
+        
+        refBoth = []
+        for(let j=0;j<refLeft.length;j++){
+            refBoth.push(refLeft[j]+refOut[j]*1.5)
+        }
+        let worstDist = Math.max(...refBoth)
+
+        return .1 + .9* ((worstDist-refBoth[ind])/worstDist)**2
+    }
+}
 
 function highlightNodes(targets,color){
     for(let i=0;i<nodeGlyphs.length;i++){
@@ -589,7 +507,6 @@ function computeHueristic(path){
     return computeCost(path) + computeSLDtoGoal(path)
 }
 
-
 function letterize(arrayOfNums){
     stringOfChars = ""
     for(let i=0;i<arrayOfNums.length-1;i++){
@@ -603,12 +520,6 @@ function writeFrontVisit(F,V){
     frontierLabel.text(toString(F))
     visitedLabel.text(toString(V))
 }
-
-
-let frontier = []
-let visited = []
-let paths = [[0]]
-let done  = 1
 
 class queueNodes{
     constructor(start){
@@ -624,14 +535,14 @@ class queueNodes{
         }
 }
 
-function updateLists(fontier){
-    frontierLabel.text(letterize(fontier))
+function updateLists(){
+    frontierLabel.text(letterize(frontier))
     visitedLabel.text(letterize(visited))
 }
 
-function updateSearchViz(fontier){
+function updateSearchViz(){
     highlightNodes(nodeInds,"rgb(255,255,255)")
-    highlightNodes(fontier,"rgb(200,50,50)")
+    highlightNodes(frontier,"rgb(200,50,50)")
     highlightNodes(visited,"rgb(128,128,128)")       
     console.log(visited)     
 }
@@ -667,6 +578,17 @@ function costShadowNodes(){
     }
 }
 
+//////////////////////////
+//Graph Search Algorithms
+//////////////////////////
+
+//Graph Search Global Variables
+let frontier = []
+let visited = []
+let paths = [[0]]
+let done  = 1
+
+//BFS
 function breadthFirstSearch(){
     if(!done){ //if search not already finished
         let open = frontier.shift()
@@ -688,9 +610,12 @@ function breadthFirstSearch(){
             //update visualization        
             updateSearchViz(frontier);updateLists(frontier)  
         }        
+    }else{
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
     }
 }
 
+//UCS
 function uniformCostSearch(){
     if(!done){ //if search not already finished
         let bestInd = 0
@@ -731,9 +656,12 @@ function uniformCostSearch(){
             
 
         }        
+    }else{
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
     }
 }
 
+//DFS
 function depthFirstSearch(){
     if(!done){ //if search not already finished
         let open = frontier.pop()
@@ -755,11 +683,13 @@ function depthFirstSearch(){
             //update visualization        
             updateSearchViz(frontier);updateLists(frontier)  
         }
+    }else{
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
     }
 }
 
+//DLS
 depthLimit = 4
-
 function depthLimitedSearch(){ 
     if(!done){ //if search not already finished
         let open = frontier.pop()
@@ -785,13 +715,16 @@ function depthLimitedSearch(){
             //update visualization        
             updateSearchViz(frontier);updateLists(frontier)  
         }
+    }else{
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
     }
     if(frontier.length==0){ //if goal node too deep
         costLabel.text(`Steps: NA Cost: NA`)
-        done = 1
+        done = 1        
     }
 }
 
+//IDS
 maxDepth = 0
 let depths = [0]
 for(let i=1; i<edges[0].length;i++){
@@ -835,11 +768,13 @@ function iterativeDeepeningSearch(){
             
             costLabel.text(`Steps: ${maxDepth} Cost: ???`)        
         }
+    }else{
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
     }
 
 }
 
-
+//BFS
 function greedyBestSearch(){
     if(!done){ //if search not already finished
         let bestInd = 0
@@ -879,9 +814,12 @@ function greedyBestSearch(){
             
 
         }        
+    }else{
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
     }
 }
 
+//A*
 function aStarSearch(){
     if(!done){ //if search not already finished
         let bestInd = 0
@@ -921,14 +859,12 @@ function aStarSearch(){
             
 
         }        
+    }else{
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
     }
 }
 
-
-
-
 let algorithms = [null,breadthFirstSearch,uniformCostSearch,depthFirstSearch,depthLimitedSearch,iterativeDeepeningSearch,greedyBestSearch,aStarSearch]
-
 
 function clickShadowButton(ind){   
 
@@ -957,12 +893,42 @@ function clickShadowButton(ind){
 
 }
 
-clickShadowButton(0)
+function clickSpeedButton(){
+    speed = (speed + 1)%speeds.length
+    
+    if(typeof animation !== 'undefined' && stepByStep==false){
+        clearInterval(animation)
+        animation = setInterval(algorithms[currentAlg], 1000/speeds[speed]) 
+    }   
+    for(let i = 0; i < speeds.length; i++){
+        if(i<=speed){sGlyphColor = "rgb(250,75,75)"}
+        else{sGlyphColor = controlColor}
+        speedGlyphs[i].attr("stroke", sGlyphColor)    
+    }
+}
+
+function clickAutoButton(){
+    stepByStep = false 
+    
+    animation = setInterval(algorithms[currentAlg], 1000/speeds[speed]) 
+    
+    autoGlyph.attr("stroke","rgb(0,200,0)")
+    stepGlyph.attr("stroke",controlColor)
+}
+
+function clickStepButton(){
+    stepByStep = true 
+    if(typeof animation !== 'undefined'){clearInterval(animation)} 
+    autoGlyph.attr("stroke",controlColor)
+    stepGlyph.attr("stroke","rgb(0,200,0)")
+}
 
 function clickAlgButton(ind){   
 
-    if(done){
+    if(done||currentAlg != ind){
         
+        currentAlg = ind
+
         if(typeof animation !== 'undefined'){clearInterval(animation)} 
               
         for(let i=0;i<algButtons.length;i++){
@@ -972,7 +938,6 @@ function clickAlgButton(ind){
                 algButtons[i].attr("opacity",.5)
             }
         }
-
         
         frontier = [0]
         visited = []
@@ -982,27 +947,23 @@ function clickAlgButton(ind){
 
         revertEdges("rgb(50,50,50)")  
         highlightNodes(nodeInds,"rgb(255,255,255)")
+        
+        
         if(ind>0){
-            done = 0
-            animation = setInterval(algorithms[ind], 1000/fps) 
-        }   
-    }
+            done = false
+            if(!stepByStep){
+                animation = setInterval(algorithms[ind], 1000/speeds[speed]) 
+            }else{
+                algorithms[ind]()
+            }
+        } 
+    }else{
+        if(stepByStep){
+        console.log("step")
+        algorithms[ind]()
+        }
+    }    
 }
 
+clickShadowButton(0)
 clickAlgButton(0)
-
-
-
-
-
-
-
-//function pause(){if(play==1){play=0;clearInterval(animation)} 
-             //else{play=1; animation = setInterval(uniformCostSearch, 1000/fps)}}
-
-//function play()
-//fps = 4
-//animation = setInterval(uniformCostSearch, 1000/fps)
-//
-
- //not used, but useful                
