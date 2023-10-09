@@ -274,7 +274,7 @@ for(let i=0;i<labelText.length;i++){
         .on("click",function(){clickAlgButton(i)})
 }
 
-shadowText = ["None","From Goal","From Start","Combined"]
+shadowText = ["None","Heuristic","Cost","Combined"]
 
 let shadowButtons = []
 
