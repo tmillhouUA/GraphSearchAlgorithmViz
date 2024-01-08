@@ -2,8 +2,8 @@
 //Settings
 ///////////
 
-let width = 1200
-let height = 900
+let width = 1500
+let height = 840
 let nNodes = 52
 let graphBorder = 100
 let nodeR = 15
@@ -988,8 +988,6 @@ let algorithms = [null,breadthFirstSearch,uniformCostSearch,depthFirstSearch,dep
 function clickShadowButton(ind){   
     
     let fills = ["rgb(0,0,0)","rgb(200,0,0)","rgb(0,0,200)","rgb(200,0,200)"]
-            
-    if(typeof animation !== 'undefined'){clearInterval(animation)} 
             
     for(let i=0;i<shadowButtons.length;i++){
         if(i==ind){
