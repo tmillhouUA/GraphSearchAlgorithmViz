@@ -15,7 +15,7 @@ let branchFactor = 2
 let alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"];
 
 let speeds = [1,3,5,15,30]
-let speed = 0
+let speed = 2
 let fps = speeds[speed]
 let stepByStep = false
 let currentAlg = -1
@@ -159,31 +159,70 @@ let svg = d3.select('#viz').append('svg').attr("width",width+200).attr("height",
 
 //Title
 
-svg.append("text").text("Graph Search Algorithms").attr("dominant-baseline","middle").attr("text-anchor","start")
-                    .attr("x",graphBorder/2).attr("y",2*graphBorder/6).attr("font-family", "monospace").attr("font-size",graphBorder/4).attr("fill","rgb(50,50,50)")   
+svg.append("text").text("Graph Search Algorithms")
+                    .attr("dominant-baseline","middle")
+                    .attr("text-anchor","start")
+                    .attr("x",graphBorder/2).attr("y",2*graphBorder/6)
+                    .attr("font-family", "monospace")
+                    .attr("font-size",graphBorder/4)
+                    .attr("fill","rgb(50,50,50)")   
                  
 //Play Controls    
 
 
+
 let playControls = svg.append("g").attr("transform",`translate(${graphBorder/2+width-graphBorder} ${(graphBorder/2-40)/2})`)
 
+let helpMessage = playControls.append("text").text("Graph Search Algorithms")
+                                            .attr("dominant-baseline","middle").attr("text-anchor","end")
+                                            .attr("x",-10)
+                                            .attr("y",20)
+                                            .attr("font-family", "monospace")
+                                            .attr("font-size",graphBorder/6)
+                                            .attr("fill","rgb(100,100,100)")
+                                            .attr("opacity",0)
+
+function setHelp(message){
+    helpMessage.text(message)
+    helpMessage.transition().duration(200).attr("opacity",1)
+}
+function clearHelp(){
+    helpMessage.transition().duration(200).attr("opacity",0)
+}
+
 let autoGlyph = playControls.append("path").attr("d","M 10 30 L 30 20 L 10 10 L 10 30 L 30 20")
-.attr("height", 40).attr("width",40).attr("rx",10)
-.attr("fill","None").attr("stroke", (function(){if(stepByStep){return controlColor}else{return "rgb(0,200,0)"}})).attr("stroke-width",2)//.attr("transform","translate(1 0)")
-
+                                        .attr("rx",10)
+                                        .attr("fill","None")
+                                        .attr("stroke", (function(){if(stepByStep){return controlColor}else{return "rgb(0,200,0)"}}))
+                                        .attr("stroke-width",2)
+                                        
 let autoClick = playControls.append("rect").attr("x",0).attr("y",0)
-.attr("height", 40).attr("width",39).attr("rx",10)
-.attr("fill","rgba(0,0,0,0)").attr("stroke", controlColor).on("click",clickAutoButton).attr("stroke-width",2)
+                                            .attr("height", 40)
+                                            .attr("width",39)
+                                            .attr("rx",10)
+                                            .attr("fill","rgba(0,0,0,0)")
+                                            .attr("stroke", controlColor)
+                                            .attr("stroke-width",2)
+                                            .on("click",clickAutoButton)
+                                            .on("mouseover",function(){setHelp("(autoplay algorithm)")})
+                                            .on("mouseout",clearHelp)
 
-
-let stepGlyph = playControls.append("path").attr("d","M 10 30 L 25 20 L 10 10 L 10 30 L 25 20 M 30 32.5 L 30 7.5")
-.attr("height", 40).attr("width",40).attr("rx",10)
-.attr("fill","None").attr("stroke", (function(){if(stepByStep){return "rgb(0,200,0)"}else{return controlColor}})).attr("stroke-width",2).attr("transform","translate(40 0)")
+let stepGlyph = playControls.append("path").attr("d","M 10 30 L 25 20 L 10 10 L 10 30 L 25 20 M 30 32.5 L 30 7.5").attr("rx",10)
+                                            .attr("fill","None")
+                                            .attr("stroke", (function(){if(stepByStep){return "rgb(0,200,0)"}else{return controlColor}}))
+                                            .attr("stroke-width",2)
+                                            .attr("transform","translate(40 0)")
 
 let stepClick =  playControls.append("rect").attr("x",40).attr("y",0)
-.attr("height", 40).attr("width",39).attr("rx",10)
-.attr("fill","rgba(0,0,0,0)").attr("stroke", controlColor).on("click",clickStepButton).attr("stroke-width",2)
-
+                                            .attr("height", 40)
+                                            .attr("width",39)
+                                            .attr("rx",10)
+                                            .attr("fill","rgba(0,0,0,0)")
+                                            .attr("stroke", controlColor)
+                                            .attr("stroke-width",2)
+                                            .on("click",clickStepButton)
+                                            .on("mouseover",function(){setHelp("(click algorithm to advance)")})
+                                            .on("mouseout",clearHelp)
 let speedGlyphs = []
 let sGlyphInc = 110/speeds.length
 let sGlyphColor = controlColor
@@ -191,14 +230,23 @@ for(let i = 0; i < speeds.length; i++){
     if(i<=speed){sGlyphColor = "rgb(250,75,75)"}
     else{sGlyphColor = controlColor}
     speedGlyphs[i] = playControls.append("path").attr("d",`M ${5+i*sGlyphInc} 32.5 L ${(i+1)*sGlyphInc-5} 20 L ${5+i*sGlyphInc} 7.5`)
-    .attr("height", 40).attr("width",40).attr("rx",10)
-    .attr("fill","rgba(0,0,0,0)").attr("stroke", sGlyphColor).attr("stroke-width",2).attr("transform","translate(85 0)")
+                                .attr("rx",10)
+                                .attr("fill","rgba(0,0,0,0)")
+                                .attr("stroke", sGlyphColor)
+                                .attr("stroke-width",2)
+                                .attr("transform","translate(85 0)")
 }
 
 let speedClick =  playControls.append("rect").attr("x",80).attr("y",0)
-.attr("height", 40).attr("width",120).attr("rx",10)
-.attr("fill","rgba(0,0,0,0)").attr("stroke", controlColor).on("click",clickSpeedButton).attr("stroke-width",2)
-
+                                            .attr("height", 40)
+                                            .attr("width",120)
+                                            .attr("rx",10)
+                                            .attr("fill","rgba(0,0,0,0)")
+                                            .attr("stroke", controlColor)
+                                            .attr("stroke-width",2)
+                                            .on("click",clickSpeedButton)
+                                            .on("mouseover",function(){setHelp("(change autoplay speed)")})
+                                            .on("mouseout",clearHelp)
 
 //Layout
 
@@ -257,7 +305,8 @@ let costLabel = svg.append("text").text("Steps: ??? Cost: ???").attr("x",7+graph
                                     .attr("fill","rgb(50,50,50)")
                                     
 labelText = ["None","Breadth First","Uniform Cost","Depth First","Depth Limited","Itr. Deepening","Greedy Best","A*"]
-
+labelHelpText = ["(clear search algorithm)","(breadth first search)", "(uniform cost search)","(depth first graph search)", "(depth limited depth first graph search)",
+                "(iterative deepening depth first tree search)", "(greedy best first search)", "(A* search)"]
 let algButtons = []
 
 for(let i=0;i<labelText.length;i++){
@@ -266,16 +315,20 @@ for(let i=0;i<labelText.length;i++){
         .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
         .attr("rx", 10).attr("opacity",.5)
         .on("click",function(){clickAlgButton(i)})
+        .on("mouseover",function(){setHelp(labelHelpText[i])})
+        .on("mouseout",clearHelp)
 
     svg.append("text").text(labelText[i]).attr("dominant-baseline","middle").attr("text-anchor","middle")
         .attr("x",75+graphBorder/2+145*i).attr("y",20+graphBorder/2 + height-graphBorder+5)
         .attr("font-family", "monospace").attr("font-size",15)
         .attr("fill","rgb(200,200,200)")
         .on("click",function(){clickAlgButton(i)})
+        .on("mouseover",function(){setHelp(labelHelpText[i])})
+        .on("mouseout",clearHelp)
 }
 
 shadowText = ["None","Heuristic","Cost","Combined"]
-
+shadowHelpText = ["(clear highlights)", "(highlight heuristic values)","(highlight cost)","(highlight heuristic value + cost)"]
 let shadowButtons = []
 
 for(let i=0;i<shadowText.length;i++){
@@ -284,12 +337,15 @@ for(let i=0;i<shadowText.length;i++){
         .attr("fill","rgb(64,64,64)").attr("stroke", "rgb(50,50,50)")
         .attr("rx", 10).attr("opacity",.5)
         .on("click",function(){clickShadowButton(i)})
-
+        .on("mouseover",function(){setHelp(shadowHelpText[i])})
+        .on("mouseout",clearHelp)
     svg.append("text").text(shadowText[i]).attr("dominant-baseline","middle").attr("text-anchor","middle")
         .attr("x",75+graphBorder/2+145*i).attr("y",15+graphBorder/2 + height-graphBorder+45+5)
         .attr("font-family", "monospace").attr("font-size",15)
         .attr("fill","rgb(200,200,200)")
         .on("click",function(){clickShadowButton(i)})
+        .on("mouseover",function(){setHelp(shadowHelpText[i])})
+        .on("mouseout",clearHelp)
 }
 
 //Generate Nodes
@@ -315,9 +371,9 @@ for(let i=0; i<nNodes;i++){
             let closest = Math.min(...dists)
             if(closest>=minDist){
                 farEnough = true
-                console.log(closest)
+                //console.log(closest)
             }else{
-                console.log("fail")
+                //console.log("fail")
                 fails++
                 if(fails>allowedFails){
                     fails = 0
@@ -446,7 +502,7 @@ function drawRadialBoundary(center,r,adjust=function(x){return x},steps=200){
     }
 
     //d += `L ${center[0]+ vecInit[0]} ${center[1]+vecInit[1]} `
-    console.log(d)
+    //console.log(d)
     svg.append("path").attr("d",d).attr("stroke", "rgb(50,50,50)").attr("fill","None").attr("stroke-width",1)
     
 
@@ -478,10 +534,9 @@ function getDistOpacity(ind,measure=0){
     let opacities = []
     let refLeft = getDists(nodeCoords[nodeCoords.length-1],nodeCoords)
     let refOut = getDistsGraph(0,edges) 
-    console.log(refOut)
+    
     if(measure==0){
         for(let i=0; i<refLeft.length;i++){
-            console.log(opacities)
             opacities.push(0)
         }
     }
@@ -507,10 +562,9 @@ function getDistOpacity(ind,measure=0){
 
         for(let i=0; i<refBoth.length;i++){
             opacities.push(.1 + .9* ((worstDist-refBoth[i])/worstDist)**2)
-        }
-            
+        }            
     }
-    console.log(opacities)
+    
     return opacities
 }
 
@@ -591,7 +645,7 @@ class queueNodes{
         this.frontier = [start]
     }
     next(){
-        console.log(this.frontier)
+        //console.log(this.frontier)
        return this.frontier.shift()
        
     }
@@ -609,7 +663,7 @@ function updateSearchViz(){
     highlightNodes(nodeInds,"rgb(255,255,255)")
     highlightNodes(frontier,"rgb(200,50,50)")
     highlightNodes(visited,"rgb(128,128,128)")       
-    console.log(visited)     
+    //console.log(visited)     
 }
 
 function showSolution(){
@@ -822,7 +876,7 @@ function iterativeDeepeningSearch(){
             updateSearchViz(frontier);updateLists(frontier)  
         }
         if(frontier.length==0){ //if goal node too deep for current limit
-            console.log(depths) 
+            //console.log(depths) 
             maxDepth++
             frontier = [0]
             depths = [0]
@@ -932,26 +986,24 @@ function aStarSearch(){
 let algorithms = [null,breadthFirstSearch,uniformCostSearch,depthFirstSearch,depthLimitedSearch,iterativeDeepeningSearch,greedyBestSearch,aStarSearch]
 
 function clickShadowButton(ind){   
-
+    
     let fills = ["rgb(0,0,0)","rgb(200,0,0)","rgb(0,0,200)","rgb(200,0,200)"]
-    if(done){
-        
-        if(typeof animation !== 'undefined'){clearInterval(animation)} 
-              
-        for(let i=0;i<shadowButtons.length;i++){
-            if(i==ind){
-                shadowButtons[i].attr("opacity",1)
-            }else{
-                shadowButtons[i].attr("opacity",.5)
-            }
-        }        
-        console.log("HEY")
-        let opacities = getDistOpacity(0,ind)
-        console.log(opacities)
-        for(let i=0; i<nNodes;i++){            
-            shadowGlyphs[i].attr("opacity",opacities[i]).attr("fill",fills[ind])          
+            
+    if(typeof animation !== 'undefined'){clearInterval(animation)} 
+            
+    for(let i=0;i<shadowButtons.length;i++){
+        if(i==ind){
+            shadowButtons[i].attr("opacity",1)
+        }else{
+            shadowButtons[i].attr("opacity",.5)
         }
+    }        
+    
+    let opacities = getDistOpacity(0,ind)        
+    for(let i=0; i<nNodes;i++){            
+        shadowGlyphs[i].attr("opacity",opacities[i]).attr("fill",fills[ind])          
     }
+    
 }
 
 function clickSpeedButton(){
@@ -985,7 +1037,7 @@ function clickStepButton(){
 }
 
 function clickAlgButton(ind){   
-
+    
     if(done||currentAlg != ind){
         
         currentAlg = ind
@@ -1019,8 +1071,7 @@ function clickAlgButton(ind){
             }
         } 
     }else{
-        if(stepByStep){
-        console.log("step")
+        if(stepByStep){        
         algorithms[ind]()
         }
     }    
