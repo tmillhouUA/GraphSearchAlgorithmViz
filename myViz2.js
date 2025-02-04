@@ -628,7 +628,7 @@ function computeHueristic(path){
 
 function letterize(arrayOfNums){
     stringOfChars = ""
-    for(let i=0;i<arrayOfNums.length-1;i++){
+    for(let i=0;i<arrayOfNums.length;i++){
         stringOfChars += alphabet[arrayOfNums[i]]
     }
     return stringOfChars
