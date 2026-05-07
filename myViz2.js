@@ -59,11 +59,11 @@ function drawDirectedEdge(root,tip,directed = true){
 
     svg.append("circle").attr("r",35).attr("cx",(root[0]+tip[0])/2).attr("cy",(root[1]+tip[1])/2).attr("fill","rgba(255,255,255,.75)").attr("filter", "url(#blur)");
 
-    let length = Math.round(normL2([tip[0]-root[0],tip[1]-root[1]]))
-    svg.append("text").text(length).attr("dominant-baseline","middle").attr("text-anchor","middle").attr("fill","rgb(64,64,64)")
+    let length = normL2([tip[0]-root[0],tip[1]-root[1]])
+    svg.append("text").text(Math.round(length)).attr("dominant-baseline","middle").attr("text-anchor","middle").attr("fill","rgb(64,64,64)")
                     .attr("x",(root[0]+tip[0])/2).attr("y",(root[1]+tip[1])/2).attr("font-family", "monospace").attr("font-size",14).attr("font-weight","bolder")
-    
-        
+
+
 
     return [path,length]
     //svg.append("line").attr("x1",root[0]).attr("y1",root[1])
@@ -671,7 +671,7 @@ function showSolution(){
     highlightNodes(paths[nNodes-1],"rgba(200,100,0)")            
     highlightEdges(paths[nNodes-1],"rgba(200,100,0)")       
     let cost  = computeCost(paths[nNodes-1])
-    costLabel.text(`Steps: ${paths[nNodes-1].length-1} Cost: ${cost}`)    
+    costLabel.text(`Steps: ${paths[nNodes-1].length-1} Cost: ${Math.round(cost)}`)    
 }
 
 function costShadowNodes(){
