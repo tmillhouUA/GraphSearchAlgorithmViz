@@ -38,29 +38,30 @@ function arrayOfZeros(rows, columns,val = 0){
 
 function drawDirectedEdge(root,tip,directed = true){
 
+    let length = normL2([tip[0]-root[0],tip[1]-root[1]])
+
     dirVec = normalizeVec([tip[0]-root[0],tip[1]-root[1]])
-    
+
     root = [root[0]+dirVec[0]*nodeR,root[1]+dirVec[1]*nodeR]
     tip = [tip[0]-dirVec[0]*nodeR,tip[1]-dirVec[1]*nodeR]
     legOne =  rotateVec(dirVec,30)
     legTwo = rotateVec(dirVec,-30)
-    
+
     let d=""
-      
+
     if(directed){
-        d +=`M ${tip[0]} ${tip[1]} L ${tip[0]-legOne[0]*arrowL} ${tip[1]-legOne[1]*arrowL} L ${tip[0]-legTwo[0]*arrowL} ${tip[1]-legTwo[1]*arrowL} L ${tip[0]} ${tip[1]} 
+        d +=`M ${tip[0]} ${tip[1]} L ${tip[0]-legOne[0]*arrowL} ${tip[1]-legOne[1]*arrowL} L ${tip[0]-legTwo[0]*arrowL} ${tip[1]-legTwo[1]*arrowL} L ${tip[0]} ${tip[1]}
     M ${tip[0]-dirVec[0]*(arrowL**2/2)**.5} ${tip[1]-dirVec[1]*(arrowL**2/2)**.5} L ${root[0]} ${root[1]}`
     }else{
         d += `M ${tip[0]} ${tip[1]} L ${root[0]} ${root[1]}`
     }
 
-    let path = svg.append("path").attr("d",d)
+    let path = graphGroup.append("path").attr("d",d)
     .attr("stroke", "rgb(50,50,50)").attr("fill","rgb(50,50,50)").attr("stroke-width",1)
 
-    svg.append("circle").attr("r",35).attr("cx",(root[0]+tip[0])/2).attr("cy",(root[1]+tip[1])/2).attr("fill","rgba(255,255,255,.75)").attr("filter", "url(#blur)");
+    graphGroup.append("circle").attr("r",35).attr("cx",(root[0]+tip[0])/2).attr("cy",(root[1]+tip[1])/2).attr("fill","rgba(255,255,255,.75)").attr("filter", "url(#blur)");
 
-    let length = normL2([tip[0]-root[0],tip[1]-root[1]])
-    svg.append("text").text(Math.round(length)).attr("dominant-baseline","middle").attr("text-anchor","middle").attr("fill","rgb(64,64,64)")
+    graphGroup.append("text").text(Math.round(length)).attr("dominant-baseline","middle").attr("text-anchor","middle").attr("fill","rgb(64,64,64)")
                     .attr("x",(root[0]+tip[0])/2).attr("y",(root[1]+tip[1])/2).attr("font-family", "monospace").attr("font-size",14).attr("font-weight","bolder")
 
 
@@ -272,14 +273,8 @@ let divider = svg.append("line").attr("x1",width-graphBorder/2 +100).attr("y1",g
                                 .attr("x2",width-graphBorder/2 +100).attr("y2",height-graphBorder/2)                                        
                                 .attr("fill","None").attr("stroke", controlColor).attr("stroke-width",2)      
 
-let frontierLabel = svg.append("text").text("-").attr("dominant-baseline","middle")
-                                                .attr("text-anchor","start").attr("writing-mode","tb")
-                                                .attr("rotate", -90).attr("letter-spacing", 10)
-                                                .attr("x",width-graphBorder/2+65).attr("y",graphBorder/2+35)
-                                                .attr("font-family", "monospace")
-                                                .attr("font-size",graphBorder/8)
-                                                .attr("fill","rgb(50,50,50)")
-                                                .attr("font-weight","bolder")
+let frontierGroup = svg.append("g")
+                       .attr("transform", `translate(${width-graphBorder/2+50}, ${graphBorder/2+35})`)
 
 let visitedLabel = svg.append("text").text("-").attr("dominant-baseline","middle")
                                                 .attr("text-anchor","start").attr("writing-mode","tb")
@@ -328,7 +323,7 @@ for(let i=0;i<labelText.length;i++){
 }
 
 shadowText = ["None","Heuristic","Cost","Combined"]
-shadowHelpText = ["(clear highlights)", "(highlight heuristic values)","(highlight cost)","(highlight heuristic value + cost)"]
+shadowHelpText = ["(clear highlights)", "(straight-line distance to goal; darker is closer)","(path cost to goal; darker is cheaper)","(path cost + straight-line distance to goal; darker is lower)"]
 let shadowButtons = []
 
 for(let i=0;i<shadowText.length;i++){
@@ -348,146 +343,154 @@ for(let i=0;i<shadowText.length;i++){
         .on("mouseout",clearHelp)
 }
 
-//Generate Nodes
+svg.append("rect")
+    .attr("x", width-graphBorder/2).attr("y", graphBorder/2 + height-graphBorder+5)
+    .attr("height", 40).attr("width", 200)
+    .attr("fill","rgb(200,50,50)").attr("stroke","rgb(50,50,50)")
+    .attr("rx", 10).attr("opacity", 1)
+    .on("click", initGraph)
+    .on("mouseover", function(){ setHelp("(generate a new random graph)") })
+    .on("mouseout", clearHelp)
 
-let nodeCoords = []
+svg.append("text").text("RESET")
+    .attr("dominant-baseline","middle").attr("text-anchor","middle")
+    .attr("x", width-graphBorder/2+100).attr("y", 20+graphBorder/2+height-graphBorder+5)
+    .attr("font-family","monospace").attr("font-size",15)
+    .attr("fill","rgb(255,255,255)")
+    .on("click", initGraph)
+    .on("mouseover", function(){ setHelp("(generate a new random graph)") })
+    .on("mouseout", clearHelp)
 
-for(let i=0; i<nNodes;i++){ 
-    let farEnough = false    
-    let nX = 0
-    let nY = 0
-    let fails = 0
-    let minDist = JSON.parse(JSON.stringify(minNodeDist))
+let graphGroup = svg.append("g")
 
-    while(!farEnough){
-        if(i==0){
-            farEnough = true
-            nX = (width-2*graphBorder)/2+ graphBorder
-            nY = (height-2*graphBorder)/2+ graphBorder
-        }else{
-            nX = Math.random() * (width-2*graphBorder)  + graphBorder
-            nY = Math.random() * (height-2*graphBorder) + graphBorder
-            let dists = getDists([nX,nY], nodeCoords)
-            let closest = Math.min(...dists)
-            if(closest>=minDist){
+//Graph Variables and Initialization
+
+let nodeCoords, edges, edgeGlyphs, edgeDists, nodeGlyphs, shadowGlyphs, labelGlyphs
+let nodeInds = arange(nNodes)
+
+function initGraph(){
+    graphGroup.selectAll("*").remove()
+
+    nodeCoords = []
+    edges = arrayOfZeros(nNodes,nNodes)
+    edgeGlyphs = arrayOfZeros(nNodes,nNodes,null)
+    edgeDists = arrayOfZeros(nNodes,nNodes,null)
+    nodeGlyphs = []
+    shadowGlyphs = []
+    labelGlyphs = []
+    depths = [0]
+    for(let i = 1; i < nNodes; i++) depths[i] = Infinity
+
+    //Generate Nodes
+
+    for(let i=0; i<nNodes;i++){
+        let farEnough = false
+        let nX = 0
+        let nY = 0
+        let fails = 0
+        let minDist = JSON.parse(JSON.stringify(minNodeDist))
+
+        while(!farEnough){
+            if(i==0){
                 farEnough = true
-                //console.log(closest)
+                nX = (width-2*graphBorder)/2+ graphBorder
+                nY = (height-2*graphBorder)/2+ graphBorder
             }else{
-                //console.log("fail")
-                fails++
-                if(fails>allowedFails){
-                    fails = 0
-                    minDist-=5
+                nX = Math.random() * (width-2*graphBorder)  + graphBorder
+                nY = Math.random() * (height-2*graphBorder) + graphBorder
+                let dists = getDists([nX,nY], nodeCoords)
+                let closest = Math.min(...dists)
+                if(closest>=minDist){
+                    farEnough = true
+                }else{
+                    fails++
+                    if(fails>allowedFails){
+                        fails = 0
+                        minDist-=5
+                    }
                 }
             }
-            
-        }
-    } 
-
-    nodeCoords.push([nX,nY])
-}
-
-//Draw Edges
-
-let edges = arrayOfZeros(nNodes,nNodes)
-let edgeGlyphs = arrayOfZeros(nNodes,nNodes,null) 
-let edgeDists = arrayOfZeros(nNodes,nNodes,null) 
-let nodeInds = arange(nodeCoords.length)
-
-for(let i=0; i<nNodes-1;i++){  
-    
-    let nodeLoc = nodeCoords[i]   
-    let dists = getDists(nodeLoc,nodeCoords)
-    let neighbors = argSort(nodeInds,dists)    
-
-    let nodesLeft = branchFactor
-    let n = 0
-
-    
-    while(nodesLeft>0){
-        
-        let neighInd = neighbors.length-2-n
-        //let neighDiag = diagonals[neighbors[neighInd]]
-
-        if(!edges[i][neighbors[neighInd]]){
-
-            edgeStuff = drawDirectedEdge(nodeLoc,nodeCoords[neighbors[neighInd]],false)    
-            edgeGlyphs[i][neighbors[neighInd]] = edgeStuff[0]
-            //edgeGlyphs[neighbors[neighInd]][i] = edgeStuff[0]
-
-            edgeDists[i][neighbors[neighInd]] = edgeStuff[1]            
-            edgeDists[neighbors[neighInd]][i] = edgeStuff[1]
-
-            edges[i][neighbors[neighInd]] = 1
-            edges[neighbors[neighInd]][i] = 1
-            nodesLeft--
-            //console.log(alphabet[neighbors[neighInd]])
         }
 
-        n++
-        if(n >= nNodes-1){
-            nodesLeft=0
+        nodeCoords.push([nX,nY])
+    }
+
+    //Draw Edges
+
+    for(let i=0; i<nNodes-1;i++){
+
+        let nodeLoc = nodeCoords[i]
+        let dists = getDists(nodeLoc,nodeCoords)
+        let neighbors = argSort(nodeInds,dists)
+
+        let nodesLeft = branchFactor
+        let n = 0
+
+        while(nodesLeft>0){
+
+            let neighInd = neighbors.length-2-n
+
+            if(!edges[i][neighbors[neighInd]]){
+
+                edgeStuff = drawDirectedEdge(nodeLoc,nodeCoords[neighbors[neighInd]],false)
+                edgeGlyphs[i][neighbors[neighInd]] = edgeStuff[0]
+
+                edgeDists[i][neighbors[neighInd]] = edgeStuff[1]
+                edgeDists[neighbors[neighInd]][i] = edgeStuff[1]
+
+                edges[i][neighbors[neighInd]] = 1
+                edges[neighbors[neighInd]][i] = 1
+                nodesLeft--
+            }
+
+            n++
+            if(n >= nNodes-1){
+                nodesLeft=0
+            }
         }
     }
-   
-}    
 
-console.log(edges)
-console.log(getDistsGraph(0,edges))
+    //Draw Circles
 
-//Draw Circles
+    for(let i=0; i<nNodes;i++){
 
-let nodeGlyphs = []
-let shadowGlyphs = []
-let labelGlyphs = []
+        let shadowGlyph = graphGroup.append("circle")
+                        .attr("cx",nodeCoords[i][0])
+                        .attr("cy",nodeCoords[i][1])
+                        .attr("r",nodeR*1.75)
+                        .attr("fill", "rgb(0,0,0)")
+                        .attr("filter", "url(#lightBlur)")
+                        .attr("opacity",0)
 
-for(let i=0; i<nNodes;i++){
-    
-    let shadowGlyph = svg.append("circle")
-                    .attr("cx",nodeCoords[i][0])
-                    .attr("cy",nodeCoords[i][1])
-                    .attr("r",nodeR*1.75)
-                    .attr("fill", "rgb(0,0,0)")
-                    .attr("filter", "url(#lightBlur)")
-                    .attr("opacity",0)
-                    //.attr("stroke", "rgba(50,50,50,1)")
-                    //.attr("stroke-width",20)
-                    //.on("mouseover",function(){return emphasizeNeighbors(i)})               
-                    //.on("mouseout",function(){return clearEmphasis()}) 
- 
+        let glyph = graphGroup.append("circle")
+                        .attr("cx",nodeCoords[i][0])
+                        .attr("cy",nodeCoords[i][1])
+                        .attr("r",nodeR)
+                        .attr("fill", "rgb(255,255,255)")
+                        .attr("stroke", "rgb(50,50,50)")
+                        .attr("stroke-width",2)
 
-    let glyph = svg.append("circle")
-                    .attr("cx",nodeCoords[i][0])
-                    .attr("cy",nodeCoords[i][1])
-                    .attr("r",nodeR)
-                    .attr("fill", "rgb(255,255,255)")
-                    .attr("stroke", "rgb(50,50,50)")
-                    .attr("stroke-width",2)
-                    //.on("mouseover",function(){return emphasizeNeighbors(i)})               
-                    //.on("mouseout",function(){return clearEmphasis()}) 
-                    
-    let label = svg.append("text")
-                    .attr("x",nodeCoords[i][0])
-                    .attr("y",nodeCoords[i][1]+1)
-                    .attr("dominant-baseline","middle")
-                    .attr("text-anchor","middle")
-                    //.attr("fill", "rgb(255,255,255)")
-                    .attr("font-family", "monospace")
-                    .attr("font-size", 15)
-                    .attr("fill", "rgb(50,50,50)")
-                    //.attr("stroke-width",1)
-                    //.on("mouseover",function(){return emphasizeNeighbors(i)})     
-                    .text(alphabet[i])          
-                    //.on("mouseout",function(){return clearEmphasis()})
-                    
-    
-    if(i==0){glyph.attr("stroke", "rgb(50,150,50)").attr("stroke-width",4).attr("r",nodeR)}
-    if(i==nNodes-1){glyph.attr("stroke", "rgb(150,50,50)").attr("stroke-width",4).attr("r",nodeR)}       
-     
+        let label = graphGroup.append("text")
+                        .attr("x",nodeCoords[i][0])
+                        .attr("y",nodeCoords[i][1]+1)
+                        .attr("dominant-baseline","middle")
+                        .attr("text-anchor","middle")
+                        .attr("font-family", "monospace")
+                        .attr("font-size", 15)
+                        .attr("fill", "rgb(50,50,50)")
+                        .text(alphabet[i])
 
-    nodeGlyphs.push(glyph)
-    shadowGlyphs.push(shadowGlyph)
-    labelGlyphs.push(label)
+        if(i==0){glyph.attr("stroke", "rgb(50,150,50)").attr("stroke-width",4).attr("r",nodeR)}
+        if(i==nNodes-1){glyph.attr("stroke", "rgb(150,50,50)").attr("stroke-width",4).attr("r",nodeR)}
+
+        nodeGlyphs.push(glyph)
+        shadowGlyphs.push(shadowGlyph)
+        labelGlyphs.push(label)
+    }
+
+    costLabel.text("Steps: ??? Cost: ???")
+    clickShadowButton(0)
+    clickAlgButton(0)
 }
 
 //Viz Functions
@@ -655,7 +658,34 @@ class queueNodes{
 }
 
 function updateLists(){
-    frontierLabel.text(letterize(frontier))
+    frontierGroup.selectAll("text").remove()
+
+    const priorityAlgs = {
+        2: (n) => Math.round(computeCost(paths[n])),
+        6: (n) => Math.round(computeSLDtoGoal(paths[n])),
+        7: (n) => Math.round(computeHueristic(paths[n]))
+    }
+    const valueFunc = priorityAlgs[currentAlg]
+
+    let frontierDisplay = [...frontier]
+    if(valueFunc){
+        frontierDisplay.sort((a, b) => valueFunc(a) - valueFunc(b))
+    }
+
+    frontierDisplay.forEach((node, idx) => {
+        let label = valueFunc ? `${alphabet[node]}(${valueFunc(node)})` : alphabet[node]
+        frontierGroup.append("text")
+            .attr("x", 0)
+            .attr("y", idx * 16)
+            .attr("dominant-baseline", "hanging")
+            .attr("text-anchor", "middle")
+            .attr("font-family", "monospace")
+            .attr("font-size", 12)
+            .attr("fill", "rgb(50,50,50)")
+            .attr("font-weight", "bolder")
+            .text(label)
+    })
+
     visitedLabel.text(letterize(visited))
 }
 
@@ -845,11 +875,7 @@ function depthLimitedSearch(){
 
 //IDS
 maxDepth = 0
-let depths = [0]
-for(let i=1; i<edges[0].length;i++){
-        depths[i] = Infinity
-    }
-costLabel.text(`Steps: ${maxDepth} Cost: ???`)
+let depths = []
 
 function iterativeDeepeningSearch(){
     if(!done){ //if search not already finished
@@ -1075,5 +1101,4 @@ function clickAlgButton(ind){
     }    
 }
 
-clickShadowButton(0)
-clickAlgButton(0)
+initGraph()
