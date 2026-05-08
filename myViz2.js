@@ -361,16 +361,87 @@ svg.append("text").text("RESET")
     .on("mouseover", function(){ setHelp("(generate a new random graph)") })
     .on("mouseout", clearHelp)
 
+const ncY = graphBorder/2 + height-graphBorder+45+5
+const ncH = 30
+const ncW = 200/3
+const ncX = width-graphBorder/2
+
+function makeHoldHandler(action) {
+    let holdTimeout, holdInterval
+    function start() { action(); holdTimeout = setTimeout(function(){ holdInterval = setInterval(action, 80) }, 400) }
+    function stop()  { clearTimeout(holdTimeout); clearInterval(holdInterval) }
+    return { start: start, stop: stop }
+}
+
+function changeNodeCount(delta){
+    nNodes = Math.max(3, Math.min(52, nNodes + delta))
+    nodeCountDisplay.text(nNodes)
+}
+
+let decHold = makeHoldHandler(function(){ changeNodeCount(-1) })
+let incHold = makeHoldHandler(function(){ changeNodeCount(1) })
+
+let decRect = svg.append("rect")
+    .attr("x", ncX).attr("y", ncY)
+    .attr("height", ncH).attr("width", ncW)
+    .attr("fill","rgb(64,64,64)").attr("stroke","rgb(50,50,50)")
+    .attr("rx",10).attr("opacity",.5)
+    .on("mousedown", function(){ decRect.attr("opacity",1); decHold.start() })
+    .on("mouseup",   function(){ decRect.attr("opacity",.5); decHold.stop() })
+    .on("mouseleave",function(){ decRect.attr("opacity",.5); decHold.stop() })
+    .on("mouseover",function(){ setHelp("(fewer nodes)") }).on("mouseout",clearHelp)
+svg.append("text").text("▼")
+    .attr("dominant-baseline","middle").attr("text-anchor","middle")
+    .attr("x", ncX + ncW/2).attr("y", ncY + ncH/2)
+    .attr("font-family","monospace").attr("font-size",15)
+    .attr("fill","rgb(200,200,200)")
+    .on("mousedown", function(){ decRect.attr("opacity",1); decHold.start() })
+    .on("mouseup",   function(){ decRect.attr("opacity",.5); decHold.stop() })
+    .on("mouseleave",function(){ decRect.attr("opacity",.5); decHold.stop() })
+    .on("mouseover",function(){ setHelp("(fewer nodes)") }).on("mouseout",clearHelp)
+
+let nodeCountDisplay = svg.append("text").text(nNodes)
+    .attr("dominant-baseline","middle").attr("text-anchor","middle")
+    .attr("x", ncX + ncW + ncW/2).attr("y", ncY + ncH/2 - 5)
+    .attr("font-family","monospace").attr("font-size",15)
+    .attr("fill","rgb(50,50,50)").attr("font-weight","bolder")
+
+svg.append("text").text("nodes")
+    .attr("dominant-baseline","hanging").attr("text-anchor","middle")
+    .attr("x", ncX + ncW + ncW/2).attr("y", ncY + ncH/2 + 3)
+    .attr("font-family","monospace").attr("font-size",10)
+    .attr("fill","rgb(50,50,50)").attr("font-weight","bolder")
+
+let incRect = svg.append("rect")
+    .attr("x", ncX + 2*ncW).attr("y", ncY)
+    .attr("height", ncH).attr("width", ncW)
+    .attr("fill","rgb(64,64,64)").attr("stroke","rgb(50,50,50)")
+    .attr("rx",10).attr("opacity",.5)
+    .on("mousedown", function(){ incRect.attr("opacity",1); incHold.start() })
+    .on("mouseup",   function(){ incRect.attr("opacity",.5); incHold.stop() })
+    .on("mouseleave",function(){ incRect.attr("opacity",.5); incHold.stop() })
+    .on("mouseover",function(){ setHelp("(more nodes)") }).on("mouseout",clearHelp)
+svg.append("text").text("▲")
+    .attr("dominant-baseline","middle").attr("text-anchor","middle")
+    .attr("x", ncX + 2*ncW + ncW/2).attr("y", ncY + ncH/2)
+    .attr("font-family","monospace").attr("font-size",15)
+    .attr("fill","rgb(200,200,200)")
+    .on("mousedown", function(){ incRect.attr("opacity",1); incHold.start() })
+    .on("mouseup",   function(){ incRect.attr("opacity",.5); incHold.stop() })
+    .on("mouseleave",function(){ incRect.attr("opacity",.5); incHold.stop() })
+    .on("mouseover",function(){ setHelp("(more nodes)") }).on("mouseout",clearHelp)
+
 let graphGroup = svg.append("g")
 
 //Graph Variables and Initialization
 
 let nodeCoords, edges, edgeGlyphs, edgeDists, nodeGlyphs, shadowGlyphs, labelGlyphs
-let nodeInds = arange(nNodes)
+let nodeInds
 
 function initGraph(){
     graphGroup.selectAll("*").remove()
 
+    nodeInds = arange(nNodes)
     nodeCoords = []
     edges = arrayOfZeros(nNodes,nNodes)
     edgeGlyphs = arrayOfZeros(nNodes,nNodes,null)
