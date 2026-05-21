@@ -32,12 +32,9 @@ Node shading overlays allow the user to visualize the relative **heuristic value
 
 ## Usage
 
-Open `index.html` via any local HTTP server or deploy to GitHub Pages. The visualization runs entirely in the browser with no build step required.
+A live version is available at [tmillhouua.github.io/GraphSearchAlgorithmViz](https://tmillhouua.github.io/GraphSearchAlgorithmViz/).
 
-```bash
-# Example using Python
-python -m http.server 3000
-```
+Alternatively, clone or download the repository and open `index.html` directly in a browser. The visualization runs entirely in the browser with no build step or server required.
 
 ## Dependencies
 
