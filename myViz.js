@@ -18,6 +18,7 @@ let speeds = [1,3,5,15,30]
 let speed = 2
 let fps = speeds[speed]
 let stepByStep = false
+let autoPlaying = false
 let currentAlg = -1
 let controlColor = "rgb(150,150,150)"
 
@@ -814,24 +815,34 @@ function breadthFirstSearch(){
         let open = frontier.shift()
         visited.push(open)
 
-        if(open == nNodes-1){ //if goal node found
+        if(open == nNodes-1){ //if goal node found (only possible if goal is the start node)
             //set search to finished
             done = 1
             //update visualization
-            showSolution();updateLists(frontier)            
+            showSolution();updateLists(frontier)
         }
         else{ //if goal node NOT found
+            let goalFound = false
             for(let i=0; i<edges[open].length;i++){if(edges[open][i]==1){ //get children
                 if(!visited.includes(i) && !frontier.includes(i)){ //if child not visited and not on frontier
-                    frontier.push(i) 
                     paths[i]=paths[open].concat([i])
+                    if(i==nNodes-1){ //goal test on generation, before adding to frontier
+                        goalFound = true
+                        break
+                    }
+                    frontier.push(i)
                 }
             }}
-            //update visualization        
-            updateSearchViz(frontier);updateLists(frontier)  
-        }        
+            if(goalFound){ //goal is shallowest possible, so this is still optimal for BFS
+                done = 1
+                showSolution();updateLists(frontier)
+            }else{
+                //update visualization
+                updateSearchViz(frontier);updateLists(frontier)
+            }
+        }
     }else{
-        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        stopAnimation()
     }
 }
 
@@ -877,7 +888,7 @@ function uniformCostSearch(){
 
         }        
     }else{
-        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        stopAnimation()
     }
 }
 
@@ -887,24 +898,34 @@ function depthFirstSearch(){
         let open = frontier.pop()
         visited.push(open)
 
-        if(open == nNodes-1){ //if goal node found
+        if(open == nNodes-1){ //if goal node found (only possible if goal is the start node)
             //set search to finished
             done = 1
-            //update visualization           
-            showSolution();updateLists(frontier)     
+            //update visualization
+            showSolution();updateLists(frontier)
         }
         else{ //if goal node NOT found
+            let goalFound = false
             for(let i=0; i<edges[open].length;i++){if(edges[open][i]==1){ //get children
                 if(!visited.includes(i) && !frontier.includes(i)){ //if child not visited and not on frontier
-                    frontier.push(i) 
                     paths[i]=paths[open].concat([i])
+                    if(i==nNodes-1){ //goal test on generation, before adding to frontier
+                        goalFound = true
+                        break
+                    }
+                    frontier.push(i)
                 }
-            }}        
-            //update visualization        
-            updateSearchViz(frontier);updateLists(frontier)  
+            }}
+            if(goalFound){ //still complete: goal is simply found one step earlier
+                done = 1
+                showSolution();updateLists(frontier)
+            }else{
+                //update visualization
+                updateSearchViz(frontier);updateLists(frontier)
+            }
         }
     }else{
-        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        stopAnimation()
     }
 }
 
@@ -936,7 +957,7 @@ function depthLimitedSearch(){
             updateSearchViz(frontier);updateLists(frontier)  
         }
     }else{
-        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        stopAnimation()
     }
     if(frontier.length==0){ //if goal node too deep
         costLabel.text(`Steps: NA Cost: NA`)
@@ -985,7 +1006,7 @@ function iterativeDeepeningSearch(){
             costLabel.text(`Steps: ${maxDepth} Cost: ???`)        
         }
     }else{
-        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        stopAnimation()
     }
 
 }
@@ -1031,7 +1052,7 @@ function greedyBestSearch(){
 
         }        
     }else{
-        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        stopAnimation()
     }
 }
 
@@ -1076,7 +1097,7 @@ function aStarSearch(){
 
         }        
     }else{
-        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        stopAnimation()
     }
 }
 
@@ -1101,33 +1122,48 @@ function clickShadowButton(ind){
     
 }
 
+function stopAnimation(){
+    if(typeof animation !== 'undefined'){clearInterval(animation)}
+    autoPlaying = false
+    autoGlyph.attr("opacity",1)
+}
+
 function clickSpeedButton(){
     speed = (speed + 1)%speeds.length
-    
-    if(typeof animation !== 'undefined' && stepByStep==false){
+
+    if(autoPlaying){
         clearInterval(animation)
-        animation = setInterval(algorithms[currentAlg], 1000/speeds[speed]) 
-    }   
+        animation = setInterval(algorithms[currentAlg], 1000/speeds[speed])
+    }
     for(let i = 0; i < speeds.length; i++){
         if(i<=speed){sGlyphColor = "rgb(250,75,75)"}
         else{sGlyphColor = controlColor}
-        speedGlyphs[i].attr("stroke", sGlyphColor)    
+        speedGlyphs[i].attr("stroke", sGlyphColor)
     }
 }
 
 function clickAutoButton(){
-    stepByStep = false 
-    
-    animation = setInterval(algorithms[currentAlg], 1000/speeds[speed]) 
-    
+    stepByStep = false
+
+    if(autoPlaying){ //if already playing, pause
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        autoPlaying = false
+        autoGlyph.attr("opacity",.5)
+    }else{ //if paused (or not yet started), play/resume
+        animation = setInterval(algorithms[currentAlg], 1000/speeds[speed])
+        autoPlaying = true
+        autoGlyph.attr("opacity",1)
+    }
+
     autoGlyph.attr("stroke","rgb(0,200,0)")
     stepGlyph.attr("stroke",controlColor)
 }
 
 function clickStepButton(){
-    stepByStep = true 
-    if(typeof animation !== 'undefined'){clearInterval(animation)} 
-    autoGlyph.attr("stroke",controlColor)
+    stepByStep = true
+    if(typeof animation !== 'undefined'){clearInterval(animation)}
+    autoPlaying = false
+    autoGlyph.attr("stroke",controlColor).attr("opacity",1)
     stepGlyph.attr("stroke","rgb(0,200,0)")
 }
 
@@ -1137,8 +1173,10 @@ function clickAlgButton(ind){
         
         currentAlg = ind
 
-        if(typeof animation !== 'undefined'){clearInterval(animation)} 
-              
+        if(typeof animation !== 'undefined'){clearInterval(animation)}
+        autoPlaying = false
+        autoGlyph.attr("opacity",1)
+
         for(let i=0;i<algButtons.length;i++){
             if(i==ind){
                 algButtons[i].attr("opacity",1)
@@ -1160,11 +1198,13 @@ function clickAlgButton(ind){
         if(ind>0){
             done = false
             if(!stepByStep){
-                animation = setInterval(algorithms[ind], 1000/speeds[speed]) 
+                animation = setInterval(algorithms[ind], 1000/speeds[speed])
+                autoPlaying = true
+                autoGlyph.attr("opacity",1)
             }else{
                 algorithms[ind]()
             }
-        } 
+        }
     }else{
         if(stepByStep){        
         algorithms[ind]()
